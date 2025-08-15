@@ -345,7 +345,11 @@ export default function BookingClient() {
 
   const tax = subtotal * 0.09 // 9% tax
   const total = subtotal + tax
-
+useEffect(() => {
+  if (searchParams.get('step') === '3') {
+    setBookingStep(3)
+  }
+}, [searchParams])
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     // Log selected seats before you eventually wire up your real booking API:

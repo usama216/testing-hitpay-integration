@@ -1,18 +1,12 @@
-// import React from 'react'
-
-// export default function page() {
-//   return (
-//     <div>page</div>
-//   )
-// }
-// app/pricing/page.tsx
 'use client'
 
 import Navbar from '@/components/Navbar'
 import { ContactSection } from '@/components/landing-page-sections/ContactSection'
 import { Tab } from '@headlessui/react'
 import Image from 'next/image'
+import { useState } from 'react'
 
+// Packages and promos data
 const rateHeaders = ['30min(0.5hr)', '1 hr', '> 1 hr']
 const rateRows = [
   { label: 'Guest', values: ['7', '6', '6'] },
@@ -33,26 +27,71 @@ const packages = [
   {
     title: 'Half-Day Productivity Boost',
     img: '/pricing_img/package-1.png',
+    price: 114, // 109 + 5
     details: [
       '6 Half-Day Pass (6 hrs/pass)',
       '4 Complimentary Hours',
       'Valid 30 days from activation',
-      'SGD 109 (UP 150) + SGD 5 for all outlets'
+      'SGD 109 (UP 150) + SGD 5 for all outlets',
     ],
   },
   {
     title: 'Flexible Full-Day Focus',
     img: '/pricing_img/package-2.png',
+    price: 214, // 209 + 5
     details: [
       '6 Full-Day Pass (12 hrs/pass)',
       '2 Half-Day Passes (6 hrs/pass)',
       'Valid 30 days from activation',
-      'SGD 209 (UP 280) + SGD 5 for all outlets'
+      'SGD 209 (UP 280) + SGD 5 for all outlets',
     ],
   },
 ]
 
+// Payment helper function
+const createHitPayPayment = async ({
+  total,
+  customer,
+  purpose,
+  redirectUrl,
+}: {
+  total: number
+  customer: { name: string; email: string; phone: string }
+  purpose: string
+  redirectUrl: string
+}) => {
+  try {
+    const body = {
+      amount: total.toFixed(2),
+      currency: 'SGD',
+      email: customer.email,
+      name: customer.name,
+      purpose,
+      reference_number: `ORDER-${Date.now()}`,
+      redirect_url: redirectUrl,
+      webhook: 'https://5hwtmvdt-8000.inc1.devtunnels.ms/api/hitpay/webhook',
+    }
+
+    const res = await fetch('http://localhost:8000/api/hitpay/create-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+    const data = await res.json()
+    return data.url
+  } catch (err) {
+    console.error('Payment creation failed', err)
+    return null
+  }
+}
+
 export default function PricingPage() {
+  const [loadingPkg, setLoadingPkg] = useState<string | null>(null)
+
+  // Dummy customer info — replace with real auth info if available
+  const customer = { name: 'Guest User', email: 'guest@example.com', phone: 'N/A' }
+
   return (
     <>
       <Navbar />
@@ -104,7 +143,7 @@ export default function PricingPage() {
                     {rateRows.map(({ label, values }) => (
                       <tr key={label} className="border-t">
                         <td className="p-3 text-left font-medium">{label}</td>
-                        {values.map((v,i) => (
+                        {values.map((v, i) => (
                           <td key={i} className="p-3">{v}</td>
                         ))}
                       </tr>
@@ -154,8 +193,27 @@ export default function PricingPage() {
                         <li key={d}>{d}</li>
                       ))}
                     </ul>
-                    <button className="mt-4 px-4 py-2 bg-gray-800 text-white rounded">
-                      Buy Now
+                    <button
+                      className="mt-4 px-4 py-2 bg-gray-800 text-white rounded"
+                      onClick={async () => {
+                        setLoadingPkg(pkg.title)
+                        const redirectUrl = 'http://localhost:3000/success'
+                        const paymentUrl = await createHitPayPayment({
+                          total: pkg.price,
+                          customer,
+                          purpose: pkg.title,
+                          redirectUrl,
+                        })
+                        if (paymentUrl) {
+                          window.location.href = paymentUrl
+                        } else {
+                          alert('Payment failed. Please try again.')
+                        }
+                        setLoadingPkg(null)
+                      }}
+                      disabled={loadingPkg === pkg.title}
+                    >
+                      {loadingPkg === pkg.title ? 'Processing…' : 'Buy Now'}
                     </button>
                   </div>
                 </div>
@@ -169,4 +227,3 @@ export default function PricingPage() {
     </>
   )
 }
-

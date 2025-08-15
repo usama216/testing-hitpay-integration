@@ -1,4 +1,3 @@
-// src/components/book-now/PaymentStep.tsx
 'use client'
 
 import { useState } from 'react'
@@ -30,17 +29,44 @@ export default function PaymentStep({
 }: Props) {
   const [loading, setLoading] = useState(false)
 
-  // TODO: another dev plugs HitPay here
-  // Example placeholder:
-  // const handlePay = async () => {
-  //   setLoading(true)
-  //   try {
-  //     const res = await createHitPayCharge({ amount: total, customer })
-  //     window.location.href = res.payment_url
-  //   } finally {
-  //     setLoading(false)
-  //   }
-  // }
+  const handlePay = async () => {
+    setLoading(true)
+    try {
+      // Get current page full URL (with query params)
+  const redirectUrl = `${window.location.origin}${window.location.pathname}${window.location.search}&step=3`
+
+
+      const body = {
+        amount: total.toFixed(2),
+        currency: 'SGD',
+        email: customer.email,
+        name: customer.name,
+        purpose: 'Test Order Payment for My Productive Space',
+        reference_number: 'ORDER123',
+        redirect_url: redirectUrl,
+        webhook: 'https://5hwtmvdt-8000.inc1.devtunnels.ms/api/hitpay/webhook',
+      }
+
+      const res = await fetch('http://localhost:8000/api/hitpay/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+
+      const data = await res.json()
+      console.log('HitPay Response:', data)
+
+      if (data.url) {
+        // Keep loading true until navigation happens
+        window.location.href = data.url
+      } else {
+        setLoading(false) // Stop loading if no redirect
+      }
+    } catch (err) {
+      console.error('Payment error:', err)
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -86,17 +112,11 @@ export default function PaymentStep({
           Back
         </Button>
         <Button
-          onClick={() => {
-            setLoading(true)
-            setTimeout(() => {
-              setLoading(false)
-              onComplete()
-            }, 800) // demo only
-          }}
+          onClick={handlePay}
           disabled={loading}
           className="flex-1 bg-orange-500 hover:bg-orange-600"
         >
-          {loading ? 'Processing…' : 'Pay (Demo)'}
+          {loading ? 'Processing…' : 'Pay Now'}
         </Button>
       </div>
     </div>
