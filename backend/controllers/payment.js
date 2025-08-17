@@ -1,4 +1,5 @@
 const axios = require("axios");
+const { sendBookingConfirmation } = require("../utils/email");
 
 const hitpayClient = axios.create({
   baseURL: process.env.HITPAY_API_URL,
@@ -63,8 +64,44 @@ exports.createPayment = async (req, res) => {
 };
 
 exports.handleWebhook = async (req, res) => {
-  const event = req.body;
-  console.log("Received HitPay webhook:", event);
+  try {
+    console.log("Raw webhook body:", req.body);
     
-  res.status(200).send("OK");
+    const event = req.body;
+    
+    let paymentDetails = null;
+    try {
+      const response = await hitpayClient.get(`/v1/payment-requests/${event.payment_request_id}`);
+      paymentDetails = response.data;
+      console.log("Fetched payment details:", paymentDetails);
+    } catch (apiError) {
+      console.error("Failed to fetch payment details:", apiError.response?.data || apiError.message);
+    }
+
+    const userData = {
+      name: paymentDetails?.name || event.customer_name || "Customer",
+      email: paymentDetails?.email || event.customer_email
+    };
+
+    const bookingData = {
+      reference_number: event.reference_number,
+      amount: event.amount,
+      location: paymentDetails?.purpose || event.location, 
+      seats: [],
+      payment_method: event.payment_method || "Online",
+      status: event.status
+    };
+
+    if (event.status === 'completed' && userData.email) {
+      await sendBookingConfirmation(userData, bookingData);
+      console.log("Confirmation email sent to:", userData.email);
+    } else {
+      console.log("Email not sent - Status:", event.status, "Email:", userData.email);
+    }
+
+    res.status(200).send("OK");
+  } catch (err) {
+    console.error("Webhook handler error:", err.message);
+    res.status(500).send("Internal Server Error");
+  }
 };
