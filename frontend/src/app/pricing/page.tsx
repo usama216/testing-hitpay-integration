@@ -72,7 +72,7 @@ const createHitPayPayment = async ({
       webhook: 'https://5hwtmvdt-8000.inc1.devtunnels.ms/api/hitpay/webhook',
     }
 
-    const res = await fetch('http://localhost:8000/api/hitpay/create-payment', {
+    const res = await fetch('https://productive-space-backend.vercel.app/api/hitpay/create-payment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
