@@ -44,7 +44,7 @@ export default function PaymentStep({
         purpose: 'Test Order Payment for My Productive Space',
         reference_number: 'ORDER123',
         redirect_url: redirectUrl,
-        webhook: 'https://5hwtmvdt-8000.inc1.devtunnels.ms/api/hitpay/webhook',
+        webhook: 'https://0gfgmt70-8000.inc1.devtunnels.ms/api/hitpay/webhook',
       }
 
       const res = await fetch('http://localhost:8000/api/hitpay/create-payment', {
